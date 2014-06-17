@@ -54,7 +54,7 @@ static const int64 DUST_SOFT_LIMIT = 100000; // 0.001 LTC
 /** Dust Hard Limit, ignored as wallet inputs (mininput default) */
 static const int64 DUST_HARD_LIMIT = 1000;   // 0.00001 LTC mininput
 /** No amount larger than this (in satoshi) is valid */
-static const int64 MAX_MONEY = 84000000 * COIN;
+static const int64 MAX_MONEY = 160000000 * COIN; // Florincoin: maximum of 160 million coins
 inline bool MoneyRange(int64 nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 /** Coinbase transaction outputs can only be spent after this number of new blocks (network rule) */
 static const int COINBASE_MATURITY = 100;
@@ -67,6 +67,10 @@ static const int fHaveUPnP = true;
 #else
 static const int fHaveUPnP = false;
 #endif
+
+static const unsigned int MAX_TX_COMMENT_LEN_V1 = 140; // Florincoin: 128 bytes + little extra
+static const unsigned int MAX_TX_COMMENT_LEN_V2 = 528; // V2          512 bytes + little extra
+static const unsigned int TX_COMMENT_V2_HEIGHT = 340000;
 
 
 extern CScript COINBASE_FLAGS;
@@ -476,11 +480,13 @@ class CTransaction
 public:
     static int64 nMinTxFee;
     static int64 nMinRelayTxFee;
-    static const int CURRENT_VERSION=1;
+    static const int LEGACY_VERSION_1 = 1;
+    static const int CURRENT_VERSION = 2;
     int nVersion;
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     unsigned int nLockTime;
+	std::string strTxComment;
 
     CTransaction()
     {
@@ -494,6 +500,8 @@ public:
         READWRITE(vin);
         READWRITE(vout);
         READWRITE(nLockTime);
+		if(this->nVersion > LEGACY_VERSION_1) { 
+        READWRITE(strTxComment); }
     )
 
     void SetNull()
@@ -502,6 +510,7 @@ public:
         vin.clear();
         vout.clear();
         nLockTime = 0;
+		strTxComment.clear();
     }
 
     bool IsNull() const
@@ -651,12 +660,13 @@ void UpdateCoins(const CTransaction& tx, CValidationState &state, CCoinsViewCach
     std::string ToString() const
     {
         std::string str;
-        str += strprintf("CTransaction(hash=%s, ver=%d, vin.size=%"PRIszu", vout.size=%"PRIszu", nLockTime=%u)\n",
+        str += strprintf("CTransaction(hash=%s, ver=%d, vin.size=%"PRIszu", vout.size=%"PRIszu", nLockTime=%u, strTxComment=%s)\n",
             GetHash().ToString().c_str(),
             nVersion,
             vin.size(),
             vout.size(),
-            nLockTime);
+            nLockTime,
+            strTxComment.substr(0,30).c_str());
         for (unsigned int i = 0; i < vin.size(); i++)
             str += "    " + vin[i].ToString() + "\n";
         for (unsigned int i = 0; i < vout.size(); i++)

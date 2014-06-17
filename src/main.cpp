@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
+// Copyright (c) 2011-2014 Litecoin Developers
+// Copyright (c) 2013-2014 Florincoin developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,7 +21,7 @@ using namespace std;
 using namespace boost;
 
 #if defined(NDEBUG)
-# error "Litecoin cannot be compiled without assertions."
+# error "Florincoin cannot be compiled without assertions."
 #endif
 
 //
@@ -35,8 +37,8 @@ CTxMemPool mempool;
 unsigned int nTransactionsUpdated = 0;
 
 map<uint256, CBlockIndex*> mapBlockIndex;
-uint256 hashGenesisBlock("0x12a765e31ffd4059bada1e25190f6e98c99d9714d334efa41a195a7e7e04bfe2");
-static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Litecoin: starting difficulty is 1 / 2^12
+uint256 hashGenesisBlock("0x09c7781c9df90708e278c35d38ea5c9041d7ecfcdd1c56ba67274b7cff3e1cea");
+static CBigNum bnProofOfWorkLimit(~uint256(0) >> 20); // Florincoin: starting difficulty is 1 / 2^12
 CBlockIndex* pindexGenesisBlock = NULL;
 int nBestHeight = -1;
 uint256 nBestChainWork = 0;
@@ -68,7 +70,7 @@ map<uint256, set<uint256> > mapOrphanTransactionsByPrev;
 // Constant stuff for coinbase transactions we create:
 CScript COINBASE_FLAGS;
 
-const string strMessageMagic = "Litecoin Signed Message:\n";
+const string strMessageMagic = "Florincoin Signed Message:\n";
 
 double dHashesPerSec = 0.0;
 int64 nHPSTimerStart = 0;
@@ -359,7 +361,7 @@ unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans)
 
 bool CTxOut::IsDust() const
 {
-    // Litecoin: IsDust() detection disabled, allows any valid dust to be relayed.
+    // Florincoin: IsDust() detection disabled, allows any valid dust to be relayed.
     // The fees imposed on each dust txo is considered sufficient spam deterrant. 
     return false;
 }
@@ -620,7 +622,7 @@ int64 CTransaction::GetMinFee(unsigned int nBlockSize, bool fAllowFree,
             nMinFee = 0;
     }
 
-    // Litecoin
+    // Florincoin
     // To limit dust spam, add nBaseFee for each output less than DUST_SOFT_LIMIT
     BOOST_FOREACH(const CTxOut& txout, vout)
         if (txout.nValue < DUST_SOFT_LIMIT)
@@ -1084,17 +1086,47 @@ uint256 static GetOrphanRoot(const CBlockHeader* pblock)
 
 int64 static GetBlockValue(int nHeight, int64 nFees)
 {
-    int64 nSubsidy = 50 * COIN;
+    int64 nSubsidy = 100 * COIN; // Florincoin: 100 (Litecoin: 50)
 
-    // Subsidy is cut in half every 840000 blocks, which will occur approximately every 4 years
-    nSubsidy >>= (nHeight / 840000); // Litecoin: 840k blocks in ~4 years
+    // Subsidy is cut in half every 800000 blocks
+    nSubsidy >>= (nHeight / 800000); // Florincoin: 800k blocks in ~1 years
 
     return nSubsidy + nFees;
 }
 
-static const int64 nTargetTimespan = 3.5 * 24 * 60 * 60; // Litecoin: 3.5 days
-static const int64 nTargetSpacing = 2.5 * 60; // Litecoin: 2.5 minutes
-static const int64 nInterval = nTargetTimespan / nTargetSpacing;
+static const int64 nTargetSpacing = 40; // Florincoin: 40 seconds (~1/4x Litecoin: 2.5 minutes)
+
+static const int64 nTargetTimespan_Version1 = 60 * 60; // Florincoin: 60 minutes (Litecoin: 3.5 days)
+static const int64 nInterval_Version1 = nTargetTimespan_Version1 / nTargetSpacing; // Florincoin: 90 blocks
+
+static const int64 nHeight_Version2 = 208440;
+static const int64 nInterval_Version2 = 15;
+static const int64 nTargetTimespan_Version2 = nInterval_Version2 * nTargetSpacing; // 10 minutes
+
+static const int64 nHeight_Version3 = 426000;
+static const int64 nInterval_Version3 = 1;
+static const int64 nTargetTimespan_Version3 = nInterval_Version3 * nTargetSpacing; // 40 seconds
+
+static const int64 nMaxAdjustDown_Version1 = 300; // 100+300 ~= 400% adjustment down
+static const int64 nMaxAdjustUp_Version1 = 75; // 100-75 = 25% of original ~= 400% adjustment up
+
+static const int64 nMaxAdjustDown_Version2 = nMaxAdjustDown_Version1;
+static const int64 nMaxAdjustUp_Version2 = nMaxAdjustUp_Version1;
+
+static const int64 nMaxAdjustDown_Version3 = 3; // 100+3 ~= 3% down
+static const int64 nMaxAdjustUp_Version3 = 2; // 100-2 = 98% of original ~= 2% up
+
+static const int64 nTargetTimespanAdjDown_Version1 = nTargetTimespan_Version1 * (100 + nMaxAdjustDown_Version1) / 100;
+static const int64 nTargetTimespanAdjDown_Version2 = nTargetTimespan_Version2 * (100 + nMaxAdjustDown_Version2) / 100;
+static const int64 nTargetTimespanAdjDown_Version3 = nTargetTimespan_Version3 * (100 + nMaxAdjustDown_Version3) / 100;
+
+static const int64 nAveragingInterval_Version1 = nInterval_Version1;
+static const int64 nAveragingInterval_Version2 = nInterval_Version2;
+static const int64 nAveragingInterval_Version3 = 6;
+
+static const int64 nAveragingTargetTimespan_Version1 = nAveragingInterval_Version1 * nTargetSpacing; 
+static const int64 nAveragingTargetTimespan_Version2 = nAveragingInterval_Version2 * nTargetSpacing; 
+static const int64 nAveragingTargetTimespan_Version3 = nAveragingInterval_Version3 * nTargetSpacing; 
 
 //
 // minimum amount of work that could possibly be required nTime after
@@ -1107,19 +1139,35 @@ unsigned int ComputeMinWork(unsigned int nBase, int64 nTime)
     if (fTestNet && nTime > nTargetSpacing*2)
         return bnProofOfWorkLimit.GetCompact();
 
+    int64 nMaxAdjustDown;
+    int64 nTargetTimespanAdjDown;
+    
+    nMaxAdjustDown = nMaxAdjustDown_Version1; // max v1, v2, v3 = 400%
+    nTargetTimespanAdjDown = nTargetTimespanAdjDown_Version3; // min v1, v2, v3 = 6 blocks
+     
     CBigNum bnResult;
     bnResult.SetCompact(nBase);
     while (nTime > 0 && bnResult < bnProofOfWorkLimit)
     {
         // Maximum 400% adjustment...
-        bnResult *= 4;
+        bnResult *= (100 + nMaxAdjustDown);
+        bnResult /= 100;
         // ... in best-case exactly 4-times-normal target time
-        nTime -= nTargetTimespan*4;
+        nTime -= nTargetTimespanAdjDown;
     }
     if (bnResult > bnProofOfWorkLimit)
         bnResult = bnProofOfWorkLimit;
     return bnResult.GetCompact();
 }
+
+static const int64 nMinActualTimespan_Version1 = nAveragingTargetTimespan_Version1 * (100 - nMaxAdjustUp_Version1) / 100;
+static const int64 nMaxActualTimespan_Version1 = nAveragingTargetTimespan_Version1 * (100 + nMaxAdjustDown_Version1) / 100;
+    
+static const int64 nMinActualTimespan_Version2 = nAveragingTargetTimespan_Version2 * (100 - nMaxAdjustUp_Version2) / 100;
+static const int64 nMaxActualTimespan_Version2 = nAveragingTargetTimespan_Version2 * (100 + nMaxAdjustDown_Version2) / 100;
+
+static const int64 nMinActualTimespan_Version3 = nAveragingTargetTimespan_Version3 * (100 - nMaxAdjustUp_Version3) / 100;
+static const int64 nMaxActualTimespan_Version3 = nAveragingTargetTimespan_Version3 * (100 + nMaxAdjustDown_Version3) / 100;
 
 unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
 {
@@ -1128,7 +1176,46 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
     // Genesis block
     if (pindexLast == NULL)
         return nProofOfWorkLimit;
-
+        
+    unsigned int nInterval;
+    unsigned int nTargetTimespan;
+    int64 nAveragingInterval;
+    int64 nMinActualTimespan;
+    int64 nMaxActualTimespan;
+    int64 nAveragingTargetTimespan;
+    
+    if (pindexLast->nHeight+1 < nHeight_Version2)
+    {
+        printf("Ver1");
+        nAveragingInterval = nAveragingInterval_Version1;
+        nInterval = nInterval_Version1;
+        nTargetTimespan = nTargetTimespan_Version1;
+        nMinActualTimespan = nMinActualTimespan_Version1;
+        nMaxActualTimespan = nMaxActualTimespan_Version1;
+        nAveragingTargetTimespan = nAveragingTargetTimespan_Version1;
+    }
+    else
+        if (pindexLast->nHeight+1 < nHeight_Version3)
+        {
+            printf("Ver2");
+            nAveragingInterval = nAveragingInterval_Version2;
+            nInterval = nInterval_Version2;
+            nTargetTimespan = nTargetTimespan_Version2;
+            nMinActualTimespan = nMinActualTimespan_Version2;
+            nMaxActualTimespan = nMaxActualTimespan_Version2;
+            nAveragingTargetTimespan = nAveragingTargetTimespan_Version2;
+        }
+        else
+        {
+            printf("Ver3");
+            nAveragingInterval = nAveragingInterval_Version3;
+            nInterval = nInterval_Version3;
+            nTargetTimespan = nTargetTimespan_Version3;
+            nMinActualTimespan = nMinActualTimespan_Version3;
+            nMaxActualTimespan = nMaxActualTimespan_Version3;
+            nAveragingTargetTimespan = nAveragingTargetTimespan_Version3;
+        }
+        
     // Only change once per interval
     if ((pindexLast->nHeight+1) % nInterval != 0)
     {
@@ -1154,29 +1241,29 @@ unsigned int static GetNextWorkRequired(const CBlockIndex* pindexLast, const CBl
 
     // Litecoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
-    int blockstogoback = nInterval-1;
-    if ((pindexLast->nHeight+1) != nInterval)
-        blockstogoback = nInterval;
-
-    // Go back by what we want to be 14 days worth of blocks
+    int blockstogoback = nAveragingInterval-1;
+    if ((pindexLast->nHeight+1) != nAveragingInterval)
+        blockstogoback = nAveragingInterval;
+        
+    // Go back by what we want to be nAveragingInterval blocks
     const CBlockIndex* pindexFirst = pindexLast;
     for (int i = 0; pindexFirst && i < blockstogoback; i++)
         pindexFirst = pindexFirst->pprev;
     assert(pindexFirst);
-
+    
     // Limit adjustment step
     int64 nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
-    printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);
-    if (nActualTimespan < nTargetTimespan/4)
-        nActualTimespan = nTargetTimespan/4;
-    if (nActualTimespan > nTargetTimespan*4)
-        nActualTimespan = nTargetTimespan*4;
-
+    printf("  nActualTimespan = %"PRI64d"  before bounds\n", nActualTimespan);       
+    if (nActualTimespan < nMinActualTimespan)
+        nActualTimespan = nMinActualTimespan;
+    if (nActualTimespan > nMaxActualTimespan)
+        nActualTimespan = nMaxActualTimespan;
+        
     // Retarget
     CBigNum bnNew;
     bnNew.SetCompact(pindexLast->nBits);
     bnNew *= nActualTimespan;
-    bnNew /= nTargetTimespan;
+    bnNew /= nAveragingTargetTimespan;
 
     if (bnNew > bnProofOfWorkLimit)
         bnNew = bnProofOfWorkLimit;
@@ -2099,7 +2186,7 @@ bool CBlock::CheckBlock(CValidationState &state, bool fCheckPOW, bool fCheckMerk
     if (vtx.empty() || vtx.size() > MAX_BLOCK_SIZE || ::GetSerializeSize(*this, SER_NETWORK, PROTOCOL_VERSION) > MAX_BLOCK_SIZE)
         return state.DoS(100, error("CheckBlock() : size limits failed"));
 
-    // Litecoin: Special short-term limits to avoid 10,000 BDB lock limit:
+    // Florincoin: Special short-term limits to avoid 10,000 BDB lock limit:
     if (GetBlockTime() < 1376568000)  // stop enforcing 15 August 2013 00:00:00
     {
         // Rule is: #unique txids referenced <= 4,500
@@ -2261,7 +2348,7 @@ bool CBlock::AcceptBlock(CValidationState &state, CDiskBlockPos *dbp)
 
 bool CBlockIndex::IsSuperMajority(int minVersion, const CBlockIndex* pstart, unsigned int nRequired, unsigned int nToCheck)
 {
-    // Litecoin: temporarily disable v2 block lockin until we are ready for v2 transition
+    // Florincoin: temporarily disable v2 block lockin until we are ready for v2 transition
     return false;
     unsigned int nFound = 0;
     for (unsigned int i = 0; i < nToCheck && nFound < nRequired && pstart != NULL; i++)
@@ -2742,11 +2829,11 @@ bool LoadBlockIndex()
 {
     if (fTestNet)
     {
-        pchMessageStart[0] = 0xfc;
-        pchMessageStart[1] = 0xc1;
-        pchMessageStart[2] = 0xb7;
-        pchMessageStart[3] = 0xdc;
-        hashGenesisBlock = uint256("0xf5ae71e26c74beacc88382716aced69cddf3dffff24f384e1808905e0188f68f");
+        pchMessageStart[0] = 0xfd;
+        pchMessageStart[1] = 0xc0;
+        pchMessageStart[2] = 0x5a;
+        pchMessageStart[3] = 0xf2;
+        hashGenesisBlock = uint256("0x9b7bc86236c34b5e3a39367c036b7fe8807a966c22a7a1f0da2a198a27e03731");
     }
 
     //
@@ -2772,41 +2859,45 @@ bool InitBlockIndex() {
     // Only add the genesis block if not reindexing (in which case we reuse the one already on disk)
     if (!fReindex) {
         // Genesis Block:
-        // CBlock(hash=12a765e31ffd4059bada, PoW=0000050c34a64b415b6b, ver=1, hashPrevBlock=00000000000000000000, hashMerkleRoot=97ddfbbae6, nTime=1317972665, nBits=1e0ffff0, nNonce=2084524493, vtx=1)
-        //   CTransaction(hash=97ddfbbae6, ver=1, vin.size=1, vout.size=1, nLockTime=0)
-        //     CTxIn(COutPoint(0000000000, -1), coinbase 04ffff001d0104404e592054696d65732030352f4f63742f32303131205374657665204a6f62732c204170706c65e280997320566973696f6e6172792c2044696573206174203536)
-        //     CTxOut(nValue=50.00000000, scriptPubKey=040184710fa689ad5023690c80f3a4)
-        //   vMerkleTree: 97ddfbbae6
+		// block.nTime = 1371488396 
+		// block.nNonce = 1000112548
+		// block.GetHash = 09c7781c9df90708e278c35d38ea5c9041d7ecfcdd1c56ba67274b7cff3e1cea
+		// CBlock(hash=09c7781c9df90708e278, PoW=00000dd664a0d447b6b3, ver=1, hashPrevBlock=00000000000000000000, hashMerkleRoot=730f0c8ddc, nTime=1371488396, nBits=1e0ffff0, nNonce=1000112548, vtx=1)
+		//   CTransaction(hash=730f0c8ddc, ver=2, vin.size=1, vout.size=1, nLockTime=0, strTxComment=text:Florincoin genesis block)
+		//     CTxIn(COutPoint(0000000000, -1), coinbase 04ffff001d010441536c617368646f74202d203137204a756e652032303133202d205361756469204172616269612053657420546f2042616e2057686174734170702c20536b797065)
+		//     CTxOut(nValue=100.00000000, scriptPubKey=040184710fa689ad5023690c80f3a4)
+		//   vMerkleTree: 730f0c8ddc 
 
         // Genesis block
-        const char* pszTimestamp = "NY Times 05/Oct/2011 Steve Jobs, Apple’s Visionary, Dies at 56";
+        const char* pszTimestamp = "Slashdot - 17 June 2013 - Saudi Arabia Set To Ban WhatsApp, Skype";
         CTransaction txNew;
         txNew.vin.resize(1);
         txNew.vout.resize(1);
         txNew.vin[0].scriptSig = CScript() << 486604799 << CBigNum(4) << vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
-        txNew.vout[0].nValue = 50 * COIN;
+        txNew.vout[0].nValue = 100 * COIN;
         txNew.vout[0].scriptPubKey = CScript() << ParseHex("040184710fa689ad5023690c80f3a49c8f13f8d45b8c857fbcbc8bc4a8e4d3eb4b10f4d4604fa08dce601aaf0f470216fe1b51850b4acf21b179c45070ac7b03a9") << OP_CHECKSIG;
+		txNew.strTxComment = "text:Florincoin genesis block";
         CBlock block;
         block.vtx.push_back(txNew);
         block.hashPrevBlock = 0;
         block.hashMerkleRoot = block.BuildMerkleTree();
         block.nVersion = 1;
-        block.nTime    = 1317972665;
+        block.nTime    = 1371488396;
         block.nBits    = 0x1e0ffff0;
-        block.nNonce   = 2084524493;
+        block.nNonce   = 1000112548;
 
         if (fTestNet)
         {
-            block.nTime    = 1317798646;
-            block.nNonce   = 385270584;
+            block.nTime    = 1371387277;
+            block.nNonce   = 1000580675;
         }
 
         //// debug print
         uint256 hash = block.GetHash();
-        printf("%s\n", hash.ToString().c_str());
-        printf("%s\n", hashGenesisBlock.ToString().c_str());
-        printf("%s\n", block.hashMerkleRoot.ToString().c_str());
-        assert(block.hashMerkleRoot == uint256("0x97ddfbbae6be97fd6cdf3e7ca13232a3afff2353e29badfab7f73011edd4ced9"));
+        printf("C %s\n", hash.ToString().c_str());
+        printf("H %s\n", hashGenesisBlock.ToString().c_str());
+        printf("M %s\n", block.hashMerkleRoot.ToString().c_str());
+        assert(block.hashMerkleRoot == uint256("0x730f0c8ddc5a592d5512566890e2a73e45feaa6748b24b849d1c29a7ab2b2300"));
         block.print();
         assert(hash == hashGenesisBlock);
 
@@ -3077,9 +3168,11 @@ bool static AlreadyHave(const CInv& inv)
 
 
 // The message start string is designed to be unlikely to occur in normal data.
-// The characters are rarely used upper ASCII, not valid as UTF-8, and produce
+// The characters are rarely used upper ascii, not valid as UTF-8, and produce
 // a large 4-byte int at any alignment.
-unsigned char pchMessageStart[4] = { 0xfb, 0xc0, 0xb6, 0xdb }; // Litecoin: increase each by adding 2 to bitcoin's value.
+//   0xfd, 0xc0 = invalid utf-8
+//   0xa5, 0xf1 = unique id
+unsigned char pchMessageStart[4] = { 0xfd, 0xc0, 0xa5, 0xf1 };
 
 
 void static ProcessGetData(CNode* pfrom)
@@ -4121,7 +4214,7 @@ bool SendMessages(CNode* pto, bool fSendTrickle)
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// LitecoinMiner
+// FlorincoinMiner
 //
 
 int static FormatHashBlocks(void* pbuffer, unsigned int len)
@@ -4534,7 +4627,7 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         return false;
 
     //// debug print
-    printf("LitecoinMiner:\n");
+    printf("FlorincoinMiner:\n");
     printf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex().c_str(), hashTarget.GetHex().c_str());
     pblock->print();
     printf("generated %s\n", FormatMoney(pblock->vtx[0].vout[0].nValue).c_str());
@@ -4543,7 +4636,7 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
     {
         LOCK(cs_main);
         if (pblock->hashPrevBlock != hashBestChain)
-            return error("LitecoinMiner : generated block is stale");
+            return error("FlorincoinMiner : generated block is stale");
 
         // Remove key from key pool
         reservekey.KeepKey();
@@ -4557,17 +4650,17 @@ bool CheckWork(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         // Process this block the same as if we had received it from another node
         CValidationState state;
         if (!ProcessBlock(state, NULL, pblock))
-            return error("LitecoinMiner : ProcessBlock, block not accepted");
+            return error("FlorincoinMiner : ProcessBlock, block not accepted");
     }
 
     return true;
 }
 
-void static LitecoinMiner(CWallet *pwallet)
+void static FlorincoinMiner(CWallet *pwallet)
 {
-    printf("LitecoinMiner started\n");
+    printf("FlorincoinMiner started\n");
     SetThreadPriority(THREAD_PRIORITY_LOWEST);
-    RenameThread("litecoin-miner");
+    RenameThread("florincoin-miner");
 
     // Each thread has its own key and counter
     CReserveKey reservekey(pwallet);
@@ -4589,7 +4682,7 @@ void static LitecoinMiner(CWallet *pwallet)
         CBlock *pblock = &pblocktemplate->block;
         IncrementExtraNonce(pblock, pindexPrev, nExtraNonce);
 
-        printf("Running LitecoinMiner with %"PRIszu" transactions in block (%u bytes)\n", pblock->vtx.size(),
+        printf("Running FlorincoinMiner with %"PRIszu" transactions in block (%u bytes)\n", pblock->vtx.size(),
                ::GetSerializeSize(*pblock, SER_NETWORK, PROTOCOL_VERSION));
 
         //
@@ -4688,7 +4781,7 @@ void static LitecoinMiner(CWallet *pwallet)
     } }
     catch (boost::thread_interrupted)
     {
-        printf("LitecoinMiner terminated\n");
+        printf("FlorincoinMiner terminated\n");
         throw;
     }
 }
@@ -4713,7 +4806,7 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet)
 
     minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)
-        minerThreads->create_thread(boost::bind(&LitecoinMiner, pwallet));
+        minerThreads->create_thread(boost::bind(&FlorincoinMiner, pwallet));
 }
 
 // Amount compression:
