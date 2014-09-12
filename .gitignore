@@ -1,7 +1,7 @@
 src/*.exe
-src/litecoin
-src/litecoind
-src/test_litecoin
+src/florincoin
+src/florincoind
+src/test_florincoin
 .*.swp
 *.*~*
 *.bak
@@ -9,17 +9,17 @@ src/test_litecoin
 *.orig
 *.o
 *.patch
-.litecoin
+.florincoin
 
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
-litecoin-qt
-Litecoin-Qt.app
+florincoin-qt
+Florincoin-Qt.app
 
 # Unit-tests
 Makefile.test
-litecoin-qt_test
+florincoin-qt_test
 
 # Resources cpp
 qrc_*.cpp
