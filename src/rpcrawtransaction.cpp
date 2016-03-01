@@ -103,6 +103,7 @@ void TxToJSON(const CTransaction& tx, const uint256 hashBlock, Object& entry)
                 entry.push_back(Pair("confirmations", 0));
         }
     }
+    entry.push_back(Pair("tx-comment", tx.strTxComment));
 }
 
 Value getrawtransaction(const Array& params, bool fHelp)
