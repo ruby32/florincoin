@@ -219,8 +219,8 @@ public:
         fSkipProofOfWorkCheck = false;
         fTestnetToBeDeprecatedFieldRPC = false;
 
-        // Florincoin: Mainnet v2 enforced as of block 2 mil
-        nEnforceV2AfterHeight = 2000000;
+        // Florincoin: Mainnet v2 enforced, transition from 0.8.7 to 0.10.4
+        nEnforceV2AfterHeight = 1679161;
     }
 
     const Checkpoints::CCheckpointData& Checkpoints() const 
