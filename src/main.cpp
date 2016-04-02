@@ -3688,8 +3688,9 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
         }
 
         // Disconnect certain incompatible clients
-        const char *badSubVers[] = { "/potcoinseeder", "/reddcoinseeder", "/worldcoinseeder" };
-        for (int x = 0; x < 3; x++)
+        const char *badSubVers[] = { "/potcoinseeder", "/reddcoinseeder", "/worldcoinseeder",
+            "/Satoshi:0.8." };
+        for (int x = 0; x < 4; x++)
         {
             if (pfrom->cleanSubVer.find(badSubVers[x], 0) == 0)
             {
