@@ -1498,6 +1498,10 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                 {
                     uint256 msghash = Hash(txNew.strTxComment.begin(), txNew.strTxComment.end());
                     std::vector<unsigned char> opdata;
+                    opdata.insert(opdata.end(), (unsigned char)'F');
+                    opdata.insert(opdata.end(), (unsigned char)'L');
+                    opdata.insert(opdata.end(), (unsigned char)'O');
+                    opdata.insert(opdata.end(), (unsigned char)'M');
                     opdata.insert(opdata.end(), msghash.begin(), msghash.end());
                     CScript scrout = CScript() << OP_RETURN << opdata;
                     CTxOut txmsgTxOut(0, scrout);
