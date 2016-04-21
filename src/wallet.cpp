@@ -1491,6 +1491,24 @@ bool CWallet::CreateTransaction(const vector<pair<CScript, CAmount> >& vecSend,
                 else
                     reservekey.ReturnKey();
 
+                // Florin:
+                // Add OP_RETURN vout containing transaction comment hash
+                // 1000 byte penalty for "dust" output
+                if (txNew.strTxComment.length() > 0)
+                {
+                    uint256 msghash = Hash(txNew.strTxComment.begin(), txNew.strTxComment.end());
+                    std::vector<unsigned char> opdata;
+                    opdata.insert(opdata.end(), (unsigned char)'F');
+                    opdata.insert(opdata.end(), (unsigned char)'L');
+                    opdata.insert(opdata.end(), (unsigned char)'O');
+                    opdata.insert(opdata.end(), (unsigned char)'M');
+                    opdata.insert(opdata.end(), msghash.begin(), msghash.end());
+                    CScript scrout = CScript() << OP_RETURN << opdata;
+                    CTxOut txmsgTxOut(0, scrout);
+                    txNew.vout.push_back(txmsgTxOut);
+                    nBytesPenalty += 1000;
+                }
+
                 // Fill vin
                 BOOST_FOREACH(const PAIRTYPE(const CWalletTx*,unsigned int)& coin, setCoins)
                     txNew.vin.push_back(CTxIn(coin.first->GetHash(),coin.second));
