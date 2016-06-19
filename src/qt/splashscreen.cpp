@@ -25,7 +25,7 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
 {
     // set reference point, paddings
     int paddingRight            = 190;
-    int paddingRightCopyright   = 220;
+    int paddingRightCopyright   = 270;
     int paddingTop              = 170;
     int paddingCopyrightTop     = 70;
     int titleCopyrightVSpace    = 14;
@@ -35,7 +35,7 @@ SplashScreen::SplashScreen(Qt::WindowFlags f, const NetworkStyle *networkStyle) 
     // define text to place
     QString versionText     = QString("Version %1").arg(QString::fromStdString(FormatFullVersion()));
     QString copyrightText1  = QChar(0xA9)+QString(" 2009-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Bitcoin Core developers"));
-    QString copyrightText2  = QChar(0xA9)+QString(" 2011-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Litecoin and Florincoin Core developers"));
+    QString copyrightText2  = QChar(0xA9)+QString(" 2011-%1 ").arg(COPYRIGHT_YEAR) + QString(tr("The Litecoin and Florincoin developers"));
     QString titleAddText    = networkStyle->getTitleAddText();
     QString font            = QApplication::font().toString();
 
