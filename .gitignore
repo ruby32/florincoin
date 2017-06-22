@@ -1,12 +1,18 @@
 *.tar.gz
 
 *.exe
+src/litecoin
 src/florincoin
-src/florincoind
+src/litecoind
+src/florincoin
+src/litecoin-cli
 src/florincoin-cli
+src/litecoin-tx
 src/florincoin-tx
 src/test/test_florincoin
 src/qt/test/test_florincoin-qt
+src/qt/test/test_litecoin-qt
+src/test/test_litecoin
 
 # autoreconf
 Makefile.in
@@ -55,7 +61,8 @@ src/qt/test/moc*.cpp
 *.o
 *.o-*
 *.patch
-.bitcoin
+.litecoin
+.florincoin
 *.a
 *.pb.cc
 *.pb.h
@@ -74,19 +81,19 @@ src/qt/test/moc*.cpp
 # Compilation and Qt preprocessor part
 *.qm
 Makefile
+litecoin-qt
 florincoin-qt
+Litecoin-Qt.app
 Florincoin-Qt.app
 
 # Unit-tests
 Makefile.test
+litecoin-qt_test
 florincoin-qt_test
 src/test/buildenv.py
 
 # Resources cpp
 qrc_*.cpp
-
-# Qt creator
-*.pro.user
 
 # Mac specific
 .DS_Store
@@ -94,6 +101,7 @@ build
 
 #lcov
 *.gcno
+*.gcda
 /*.info
 test_bitcoin.coverage/
 total.coverage/
@@ -104,10 +112,16 @@ linux-coverage-build
 linux-build
 win32-build
 qa/pull-tester/run-bitcoind-for-test.sh
-qa/pull-tester/tests-config.sh
+qa/pull-tester/tests_config.py
 qa/pull-tester/cache/*
 qa/pull-tester/test.*/*
+qa/tmp
+cache/
+share/BitcoindComparisonTool.jar
 
 !src/leveldb*/Makefile
 
 /doc/doxygen/
+
+libbitcoinconsensus.pc
+contrib/devtools/split-debug.sh

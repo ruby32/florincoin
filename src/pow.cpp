@@ -1,26 +1,27 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2014 The Bitcoin developers
-// Distributed under the MIT/X11 software license, see the accompanying
+// Copyright (c) 2009-2015 The Bitcoin Core developers
+// Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "pow.h"
 
+#include "arith_uint256.h"
 #include "chain.h"
-#include "chainparams.h"
 #include "primitives/block.h"
 #include "uint256.h"
 #include "util.h"
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock)
+unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
 {
-    static const int nMinActualTimespan_Version1 = Params().nAveragingTargetTimespan_Version1 * (100 - Params().nMaxAdjustUp_Version1) / 100;
-    static const int nMaxActualTimespan_Version1 = Params().nAveragingTargetTimespan_Version1 * (100 + Params().nMaxAdjustDown_Version1) / 100;
-    static const int nMinActualTimespan_Version2 = Params().nAveragingTargetTimespan_Version2 * (100 - Params().nMaxAdjustUp_Version2) / 100;
-    static const int nMaxActualTimespan_Version2 = Params().nAveragingTargetTimespan_Version2 * (100 + Params().nMaxAdjustDown_Version2) / 100;
-    static const int nMinActualTimespan_Version3 = Params().nAveragingTargetTimespan_Version3 * (100 - Params().nMaxAdjustUp_Version3) / 100;
-    static const int nMaxActualTimespan_Version3 = Params().nAveragingTargetTimespan_Version3 * (100 + Params().nMaxAdjustDown_Version3) / 100;
 
-    unsigned int nProofOfWorkLimit = Params().ProofOfWorkLimit().GetCompact();
+    static const int nMinActualTimespan_Version1 = params.nAveragingTargetTimespan_Version1 * (100 - params.nMaxAdjustUp_Version1) / 100;
+    static const int nMaxActualTimespan_Version1 = params.nAveragingTargetTimespan_Version1 * (100 + params.nMaxAdjustDown_Version1) / 100;
+    static const int nMinActualTimespan_Version2 = params.nAveragingTargetTimespan_Version2 * (100 - params.nMaxAdjustUp_Version2) / 100;
+    static const int nMaxActualTimespan_Version2 = params.nAveragingTargetTimespan_Version2 * (100 + params.nMaxAdjustDown_Version2) / 100;
+    static const int nMinActualTimespan_Version3 = params.nAveragingTargetTimespan_Version3 * (100 - params.nMaxAdjustUp_Version3) / 100;
+    static const int nMaxActualTimespan_Version3 = params.nAveragingTargetTimespan_Version3 * (100 + params.nMaxAdjustDown_Version3) / 100;
+
+    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
     // Genesis block
     if (pindexLast == NULL)
@@ -33,44 +34,45 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     unsigned int nMaxActualTimespan;
     unsigned int nAveragingTargetTimespan;
 
-    if (pindexLast->nHeight+1 < Params().nHeight_Version2)
+    if (pindexLast->nHeight+1 < params.nHeight_Version2)
     {
-        nAveragingInterval = Params().nAveragingInterval_Version1;
-        nInterval = Params().nInterval_Version1;
-        nTargetTimespan = Params().nTargetTimespan_Version1;
+        nAveragingInterval = params.nAveragingInterval_Version1;
+        nInterval = params.nInterval_Version1;
+        nTargetTimespan = params.nPowTargetTimespan_Version1;
         nMinActualTimespan = nMinActualTimespan_Version1;
         nMaxActualTimespan = nMaxActualTimespan_Version1;
-        nAveragingTargetTimespan = Params().nAveragingTargetTimespan_Version1;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version1;
     }
     else
-    if (pindexLast->nHeight+1 < Params().nHeight_Version3)
+    if (pindexLast->nHeight+1 < params.nHeight_Version3)
     {
-        nAveragingInterval = Params().nAveragingInterval_Version2;
-        nInterval = Params().nInterval_Version2;
-        nTargetTimespan = Params().nTargetTimespan_Version2;
+        nAveragingInterval = params.nAveragingInterval_Version2;
+        nInterval = params.nInterval_Version2;
+        nTargetTimespan = params.nPowTargetTimespan_Version2;
         nMinActualTimespan = nMinActualTimespan_Version2;
         nMaxActualTimespan = nMaxActualTimespan_Version2;
-        nAveragingTargetTimespan = Params().nAveragingTargetTimespan_Version2;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version2;
     }
     else
     {
-        nAveragingInterval = Params().nAveragingInterval_Version3;
-        nInterval = Params().nInterval_Version3;
-        nTargetTimespan = Params().nTargetTimespan_Version3;
+        nAveragingInterval = params.nAveragingInterval_Version3;
+        nInterval = params.nInterval_Version3;
+        nTargetTimespan = params.nPowTargetTimespan_Version3;
         nMinActualTimespan = nMinActualTimespan_Version3;
         nMaxActualTimespan = nMaxActualTimespan_Version3;
-        nAveragingTargetTimespan = Params().nAveragingTargetTimespan_Version3;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version3;
     }
 
-    // Only change once per interval
+
+    // Only change once per difficulty adjustment interval
     if ((pindexLast->nHeight+1) % nInterval != 0)
     {
-        if (Params().AllowMinDifficultyBlocks())
+        if (params.fPowAllowMinDifficultyBlocks)
         {
             // Special difficulty rule for testnet:
             // If the new block's timestamp is more than 2* 10 minutes
             // then allow mining of a min-difficulty block.
-            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + nTargetTimespan*2)
+            if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing*2)
                 return nProofOfWorkLimit;
             else
             {
@@ -84,6 +86,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
         return pindexLast->nBits;
     }
 
+    // Go back by what we want to be 14 days worth of blocks
     // Florincoin: This fixes an issue where a 51% attack can change difficulty at will.
     // Go back the full period unless it's the first retarget after genesis. Code courtesy of Art Forz
     int blockstogoback = nAveragingInterval-1;
@@ -94,19 +97,69 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     const CBlockIndex* pindexFirst = pindexLast;
     for (int i = 0; pindexFirst && i < blockstogoback; i++)
         pindexFirst = pindexFirst->pprev;
+
     assert(pindexFirst);
 
+    return CalculateNextWorkRequired(pindexLast, pindexFirst->GetBlockTime(), params);
+}
+
+unsigned int CalculateNextWorkRequired(const CBlockIndex* pindexLast, int64_t nFirstBlockTime, const Consensus::Params& params)
+{
+    if (params.fPowNoRetargeting)
+        return pindexLast->nBits;
+
+    static const int nMinActualTimespan_Version1 = params.nAveragingTargetTimespan_Version1 * (100 - params.nMaxAdjustUp_Version1) / 100;
+    static const int nMaxActualTimespan_Version1 = params.nAveragingTargetTimespan_Version1 * (100 + params.nMaxAdjustDown_Version1) / 100;
+    static const int nMinActualTimespan_Version2 = params.nAveragingTargetTimespan_Version2 * (100 - params.nMaxAdjustUp_Version2) / 100;
+    static const int nMaxActualTimespan_Version2 = params.nAveragingTargetTimespan_Version2 * (100 + params.nMaxAdjustDown_Version2) / 100;
+    static const int nMinActualTimespan_Version3 = params.nAveragingTargetTimespan_Version3 * (100 - params.nMaxAdjustUp_Version3) / 100;
+    static const int nMaxActualTimespan_Version3 = params.nAveragingTargetTimespan_Version3 * (100 + params.nMaxAdjustDown_Version3) / 100;
+
+    unsigned int nInterval;
+    unsigned int nTargetTimespan;
+    unsigned int nAveragingInterval;
+    unsigned int nMinActualTimespan;
+    unsigned int nMaxActualTimespan;
+    unsigned int nAveragingTargetTimespan;
+
+    if (pindexLast->nHeight+1 < params.nHeight_Version2)
+    {
+        nAveragingInterval = params.nAveragingInterval_Version1;
+        nInterval = params.nInterval_Version1;
+        nTargetTimespan = params.nPowTargetTimespan_Version1;
+        nMinActualTimespan = nMinActualTimespan_Version1;
+        nMaxActualTimespan = nMaxActualTimespan_Version1;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version1;
+    }
+    else
+    if (pindexLast->nHeight+1 < params.nHeight_Version3)
+    {
+        nAveragingInterval = params.nAveragingInterval_Version2;
+        nInterval = params.nInterval_Version2;
+        nTargetTimespan = params.nPowTargetTimespan_Version2;
+        nMinActualTimespan = nMinActualTimespan_Version2;
+        nMaxActualTimespan = nMaxActualTimespan_Version2;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version2;
+    }
+    else
+    {
+        nAveragingInterval = params.nAveragingInterval_Version3;
+        nInterval = params.nInterval_Version3;
+        nTargetTimespan = params.nPowTargetTimespan_Version3;
+        nMinActualTimespan = nMinActualTimespan_Version3;
+        nMaxActualTimespan = nMaxActualTimespan_Version3;
+        nAveragingTargetTimespan = params.nAveragingTargetTimespan_Version3;
+    }
     // Limit adjustment step
-    int64_t nActualTimespan = pindexLast->GetBlockTime() - pindexFirst->GetBlockTime();
-    LogPrintf("  nActualTimespan = %d  before bounds\n", nActualTimespan);
+    int64_t nActualTimespan = pindexLast->GetBlockTime() - nFirstBlockTime;
     if (nActualTimespan < nMinActualTimespan)
         nActualTimespan = nMinActualTimespan;
-    if (nActualTimespan > nMaxActualTimespan)
-        nActualTimespan = nMaxActualTimespan;
+    if (nActualTimespan > nMinActualTimespan)
+        nActualTimespan = nMinActualTimespan;
 
     // Retarget
-    uint256 bnNew;
-    uint256 bnOld;
+    arith_uint256 bnNew;
+    arith_uint256 bnOld;
     bnNew.SetCompact(pindexLast->nBits);
     bnOld = bnNew;
     // Florincoin: intermediate uint256 can overflow by 1 bit
@@ -118,51 +171,28 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     if (fShift)
         bnNew <<= 1;
 
-    if (bnNew > Params().ProofOfWorkLimit())
-        bnNew = Params().ProofOfWorkLimit();
-
-    /// debug print
-    LogPrintf("GetNextWorkRequired RETARGET\n");
-    LogPrintf("Params().TargetTimespan() = %d    nActualTimespan = %d\n", nTargetTimespan, nActualTimespan);
-    LogPrintf("Before: %08x  %s\n", pindexLast->nBits, bnOld.ToString());
-    LogPrintf("After:  %08x  %s\n", bnNew.GetCompact(), bnNew.ToString());
+    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
+    if (bnNew > bnPowLimit)
+        bnNew = bnPowLimit;
 
     return bnNew.GetCompact();
 }
 
-bool CheckProofOfWork(uint256 hash, unsigned int nBits)
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
 {
     bool fNegative;
     bool fOverflow;
-    uint256 bnTarget;
-
-    if (Params().SkipProofOfWorkCheck())
-       return true;
+    arith_uint256 bnTarget;
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > Params().ProofOfWorkLimit())
-        return error("CheckProofOfWork() : nBits below minimum work");
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit))
+        return false;
 
     // Check proof of work matches claimed amount
-    if (hash > bnTarget)
-        return error("CheckProofOfWork() : hash doesn't match nBits");
+    if (UintToArith256(hash) > bnTarget)
+        return false;
 
     return true;
-}
-
-uint256 GetBlockProof(const CBlockIndex& block)
-{
-    uint256 bnTarget;
-    bool fNegative;
-    bool fOverflow;
-    bnTarget.SetCompact(block.nBits, &fNegative, &fOverflow);
-    if (fNegative || fOverflow || bnTarget == 0)
-        return 0;
-    // We need to compute 2**256 / (bnTarget+1), but we can't represent 2**256
-    // as it's too large for a uint256. However, as 2**256 is at least as large
-    // as bnTarget+1, it is equal to ((2**256 - bnTarget - 1) / (bnTarget+1)) + 1,
-    // or ~bnTarget / (nTarget+1) + 1.
-    return (~bnTarget / (bnTarget + 1)) + 1;
 }
