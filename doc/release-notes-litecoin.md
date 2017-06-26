@@ -1,124 +1,61 @@
-litecoin Core version 0.10.4.0 is now available from:
+Florincoin Core version 0.13.3 is now available from:
 
-  <https://download.litecoin.org/litecoin-0.10.4.0/>
+  <https://download.florincoin.org/florincoin-0.13.3/>
 
-This is a new minor version release, bringing bug fixes, the BIP65
-(CLTV) consensus change, and relay policy preparation for BIP113. It is
-recommended to upgrade to this version as soon as possible.
+This is a new major version release, including new features, various bugfixes and performance improvements, as well as updated translations.
+It is recommended to upgrade to this version.
 
 Please report bugs using the issue tracker at github:
 
-  <https://github.com/litecoin-project/litecoin/issues>
+  <https://github.com/florincoin/florincoin/issues>
 
-Upgrading and downgrading
-=========================
+Compatibility
+==============
 
-How to Upgrade
---------------
+Microsoft ended support for Windows XP on [April 8th, 2014](https://www.microsoft.com/en-us/WindowsForBusiness/end-of-xp-support),
+an OS initially released in 2001. This means that not even critical security
+updates will be released anymore. Without security updates, using a florincoin
+wallet on a XP machine is irresponsible at least.
 
-If you are running an older version, shut it down. Wait until it has completely
-shut down (which might take a few minutes for older versions), then run the
-installer (on Windows) or just copy over /Applications/litecoin-Qt (on Mac) or
-litecoind/litecoin-qt (on Linux).
+In addition to that, with 0.12.x there have been varied reports of Bitcoin Core
+randomly crashing on Windows XP. It is [not clear](https://github.com/bitcoin/bitcoin/issues/7681#issuecomment-217439891)
+what the source of these crashes is, but it is likely that upstream
+libraries such as Qt are no longer being tested on XP.
 
-Downgrade warning
-------------------
+We do not have time nor resources to provide support for an OS that is
+end-of-life. From 0.13.0 on, Windows XP is no longer supported. Users are
+suggested to upgrade to a newer version of Windows, or install an alternative OS
+that is supported.
 
-Because release 0.10+ and later makes use of headers-first synchronization and
-parallel block download (see further), the block files and databases are not
-backwards-compatible with pre-0.10 versions of litecoin Core or other software:
+No attempt is made to prevent installing or running the software on Windows XP,
+you can still do so at your own risk, but do not expect it to work: do not
+report issues about Windows XP to the issue tracker.
 
-* Blocks will be stored on disk out of order (in the order they are
-received, really), which makes it incompatible with some tools or
-other programs. Reindexing using earlier versions will also not work
-anymore as a result of this.
+From 0.13.1 onwards OS X 10.7 is no longer supported. 0.13.0 was intended to work on 10.7+,
+but severe issues with the libc++ version on 10.7.x keep it from running reliably.
+0.13.1 now requires 10.8+, and will communicate that to 10.7 users, rather than crashing unexpectedly.
 
-* The block index database will now hold headers for which no block is
-stored on disk, which earlier versions won't support.
+Notable changes
+===============
 
-If you want to be able to downgrade smoothly, make a backup of your entire data
-directory. Without this your node will need start syncing (or importing from
-bootstrap.dat) anew afterwards. It is possible that the data from a completely
-synchronised 0.10 node may be usable in older versions as-is, but this is not
-supported and may break as soon as the older version attempts to reindex.
+New Multisig Address Prefix
+---------------------------
 
-This does not affect wallet forward or backward compatibility.
+Florincoin Core now supports P2SH addresses beginning with M on mainnet and Q on testnet.
+P2SH addresses beginning with 3 on mainnet and m or n on testnet will continue to be valid.
+Old and new addresses can be used interchangeably.
 
-Notable changes since 0.10.3
-============================
+Reset Testnet
+-------------
 
-BIP65 soft fork to enforce OP_CHECKLOCKTIMEVERIFY opcode
---------------------------------------------------------
-
-This release includes several changes related to the [BIP65][] soft fork
-which redefines the existing OP_NOP2 opcode as OP_CHECKLOCKTIMEVERIFY
-(CLTV) so that a transaction output can be made unspendable until a
-specified point in the future.
-
-1. This release will only relay and mine transactions spending a CLTV
-   output if they comply with the BIP65 rules as provided in code.
-
-2. This release will produce version 4 blocks by default. Please see the
-   *notice to miners* below.
-
-3. Once 951 out of a sequence of 1,001 blocks on the local node's best block
-   chain contain version 4 (or higher) blocks, this release will no
-   longer accept new version 3 blocks and it will only accept version 4
-   blocks if they comply with the BIP65 rules for CLTV.
-
-**Notice to miners:** litecoin Core’s block templates are now for
-version 4 blocks only, and any mining software relying on its
-getblocktemplate must be updated in parallel to use libblkmaker either
-version v0.4.3 or any version from v0.5.2 onward.
-
-- If you are solo mining, this will affect you the moment you upgrade
-  litecoin Core, which must be done prior to BIP65 achieving its 951/1001
-  status.
-
-- If you are mining with the stratum mining protocol: this does not
-  affect you.
-
-- If you are mining with the getblocktemplate protocol to a pool: this
-  will affect you at the pool operator’s discretion, which must be no
-  later than BIP65 achieving its 951/1001 status.
-
-[BIP65]: https://github.com/bitcoin/bips/blob/master/bip-0065.mediawiki
-
-
-Windows bug fix for corrupted UTXO database on unclean shutdowns
-----------------------------------------------------------------
-
-Several Windows users reported that they often need to reindex the
-entire blockchain after an unclean shutdown of litecoin Core on Windows
-(or an unclean shutdown of Windows itself). Although unclean shutdowns
-remain unsafe, this release no longer relies on memory-mapped files for
-the UTXO database, which significantly reduced the frequency of unclean
-shutdowns leading to required reindexes during testing.
-
-For more information, see: <https://github.com/bitcoin/bitcoin/pull/6917>
-
-Other fixes for database corruption on Windows are expected in the
-next major release.
-
-0.10.4 Change log
-=================
-
-This release is based upon Bitcoin Core v0.10.4.  Their upstream changelog applies to us and
-is included in as separate release-notes, see: [Release Notes](release-notes.md).  
-This section describes the litecoin-specific differences.
-
-- Added BIP65 CHECKLOCKTIMEVERIFY softfork.
-- Increased OP_RETURN relay size to 80 bytes.
+Testnet3 has been deprecated and replaced with Testnet4.
 
 Credits
 =======
 
 Thanks to everyone who directly contributed to this release:
 
-- Charles Lee
-- pooler
+- [The Bitcoin Core Developers](/doc/release-notes)
 - Adrian Gallagher
-- Anton Yemelyanov
-- Warren Togami
-- BtcDrak
-
+- shaolinfry
+- Xinxi Wang
