@@ -4256,10 +4256,12 @@ bool static ProcessMessage(CNode* pfrom, string strCommand, CDataStream& vRecv, 
             pfrom->PushMessage("inv", vInv);
     }
 
+    /*
     else if (strCommand == "provider_test") 
     {
-        cout << "331a25602864a378d9ac8b\n";
+        std::cout << "331a25602864a378d9ac8b\n";
     }
+    */
 
 
     else if (strCommand == "ping")
