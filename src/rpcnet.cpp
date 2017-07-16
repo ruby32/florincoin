@@ -38,6 +38,26 @@ Value getconnectioncount(const Array& params, bool fHelp)
     return (int)vNodes.size();
 }
 
+Value provider_test(const Array& params, bool fHelp)
+{
+    if (fHelp || params.size() != 0)
+        throw runtime_error(
+            "provider_test\n"
+            "\nSend a test message to other Alexandria provider nodes.\n"
+            "\nExamples:\n"
+            + HelpExampleCli("provider_test", "")
+            + HelpExampleRpc("provider_test", "")
+        );
+
+    // Request that each node send a ping during next message processing pass
+    LOCK(cs_vNodes);
+    BOOST_FOREACH(CNode* pNode, vNodes) {
+        pNode->PushMessage("provider_test");
+    }
+
+    return Value::null;
+}
+
 Value ping(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 0)
@@ -59,7 +79,6 @@ Value ping(const Array& params, bool fHelp)
 
     return Value::null;
 }
-
 static void CopyNodeStats(std::vector<CNodeStats>& vstats)
 {
     vstats.clear();
