@@ -40,6 +40,7 @@ Value getconnectioncount(const Array& params, bool fHelp)
 
 Value provider_test(const Array& params, bool fHelp)
 {
+    LogPrintf("called provider_test, yolo");
     if (fHelp || params.size() != 0)
         throw runtime_error(
             "provider_test\n"
@@ -52,7 +53,10 @@ Value provider_test(const Array& params, bool fHelp)
     // Request that each node send a ping during next message processing pass
     LOCK(cs_vNodes);
     BOOST_FOREACH(CNode* pNode, vNodes) {
-        pNode->PushMessage("provider_test");
+        LogPrintf("pNode: %s\n", pNode->addr.ToStringIPPort());
+        pNode->PushMessage("provider_test", 1);
+        pNode->PushMessage("ping", 1);
+        pNode->PushMessage("ping");
     }
 
     return Value::null;
